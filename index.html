@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pombo Correio web</title>
+</head>
+<body>
+  <!-- landing page -->
+  <!-- http://127.0.0.1:5500/frontend/ -->
+  <h1>Crie seu bilhete!</h1>
+
+  <form method="post" 
+        action="http://localhost:8080/bilhete/create">
+    <label>Texto</label>
+    <input type="text" name="texto" id="content"
+      required minlength="1">
+
+      <label>Acessos</label>
+    <input type="number" name="acessos" id="acess">
+
+      <label>Tempo Disponível</label>
+    <input type="time" name="tempo" id="time">
+
+    <input type="submit" value="Criar">
+  </form>
+
+  <h2>Buscar bilhete</h2>
+
+  <form id="form-busca">
+    <label for="id-bilhete">ID do bilhete</label>
+    <input type="number" name="id-bilhete" value="1" min="1" required>
+
+    <input type="submit" value="Buscar">
+  </form>
+
+<div id="resultado"></div>
+
+  <!-- http://127.0.0.1:5500/frontend -->
+
+  <!-- de-para, wearables -->
+
+  <script>
+    const form = document.querySelector('form');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); // previne o envio
+      const endpoint = event.target.action;
+      const dados = new FormData(form);
+      console.log(dados);
+      const objeto = Object.fromEntries(dados);
+      const json = JSON.stringify(objeto);
+      console.log(json);
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer super-secret-token'
+        },
+        body: json
+      };
+      let tempo = document.getElementById('time').value;
+      let acesso = document.getElementById('acess').value;
+
+      if ( tempo === '' && acesso === '') {
+        alert('Preencha pelo menos mais um campo');
+        return;
+      }
+
+      const resp = await fetch(endpoint, options);
+
+      if (resp.status === 201) { // sucesso (20X)
+        form.reset();
+        console.log('Bilhete criado!');
+      } else { // falhou
+        console.error('Ocorreu um erro', resp.status);
+      }
+    });
+
+    // ver tudo a partir daqui:
+    
+    const formBusca = document.getElementById('form-busca');
+    const resultado = document.getElementById('resultado');
+
+    formBusca.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const id = formBusca['id-bilhete'].value;
+
+      const resp = await fetch(`http://localhost:8080/bilhete/busca?id=${id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer super-secret-token'
+        }
+      });
+
+      if (resp.ok) {
+        const bilhete = await resp.json();
+
+        resultado.innerHTML = `
+          <h3>Bilhete ${bilhete.id}</h3>
+          <p>Texto: ${bilhete.texto}</p>
+          <p>Tempo: ${bilhete.tempo ?? 'Não informado'} minutos</p>
+          <p>Acessos: ${bilhete.acessos ?? 'Não informado'}</p>
+        `;
+      } else if (resp.status === 404) {
+        resultado.innerHTML = '<p>Bilhete não encontrado.</p>';
+      } else {
+        resultado.innerHTML = '<p>Erro ao buscar o bilhete.</p>';
+        console.error('Erro:', resp.status);
+      }
+    });
+  </script>
+</body>
+</html>
